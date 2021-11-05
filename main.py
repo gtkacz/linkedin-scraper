@@ -26,7 +26,7 @@ def main():
     
     OPTIONS = webdriver.ChromeOptions()
     #OPTIONS.add_argument('--headless')
-    #OPTIONS.add_argument('--user-data-dir=chrome-data')
+    OPTIONS.add_argument('--user-data-dir=chrome-data')
     
     try:
         browser = webdriver.Chrome(PATH, options=OPTIONS)
@@ -77,9 +77,15 @@ def main():
         for d in all:
             link = d['LinkedIn']
             browser.get(url)
-            cookies = pickle.load(open('cookies.pkl', 'rb'))
-            for cookie in cookies:
-                browser.add_cookie(cookie)
+            WebDriverWait(browser, 10).until(expected_conditions.presence_of_element_located((By.CLASS_NAME, 'card-layout')))
+            username = browser.find_element_by_id('username')
+            password = browser.find_element_by_id('password')
+            username.send_keys(login_info['username'])
+            password.send_keys(login_info['password'])
+            browser.find_element_by_xpath('/html/body/div/main/div[2]/div[1]/form/div[3]/button').click()
+            # cookies = pickle.load(open('cookies.pkl', 'rb'))
+            # for cookie in cookies:
+            #     browser.add_cookie(cookie)
             page = browser.page_source
             soup = BeautifulSoup(page, 'html.parser')
             
