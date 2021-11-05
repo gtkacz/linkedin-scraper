@@ -1,4 +1,4 @@
-import re, sys, html, requests, os, mechanize, pandas as pd, requests, time, pickle
+import re, sys, html, requests, os, mechanize, pandas as pd, requests, time, pickle, json
 from tqdm import tqdm
 from bs4 import BeautifulSoup
 from pathlib import Path
@@ -26,26 +26,26 @@ def main():
     
     OPTIONS = webdriver.ChromeOptions()
     #OPTIONS.add_argument('--headless')
+    #OPTIONS.add_argument('--user-data-dir=chrome-data')
     
     try:
         browser = webdriver.Chrome(PATH, options=OPTIONS)
-        OPTIONS.add_argument('user-data-dir=selenium') 
         
     except WebDriverException:
         BINARY = 'D:\Program Files (x86)\Google\Chrome\Application\chrome.exe'
-        # BINARY = askopenfilename()
         OPTIONS.binary_location = BINARY
         OPTIONS.add_experimental_option('excludeSwitches', ['enable-logging'])
-        OPTIONS.add_argument('user-data-dir=selenium') 
         browser = webdriver.Chrome(PATH, options=OPTIONS)
         
     try:
+        with open ('login.json') as f:
+            login_info = json.load(f)
         browser.get(url)
         WebDriverWait(browser, 10).until(expected_conditions.presence_of_element_located((By.CLASS_NAME, 'card-layout')))
         username = browser.find_element_by_id('username')
         password = browser.find_element_by_id('password')
-        username.send_keys('brunojs@al.insper.edu.br')
-        password.send_keys('88acybdfzj@x')
+        username.send_keys(login_info['username'])
+        password.send_keys(login_info['password'])
         browser.find_element_by_xpath('/html/body/div/main/div[2]/div[1]/form/div[3]/button').click()
         WebDriverWait(browser, 10).until(expected_conditions.presence_of_element_located((By.CLASS_NAME, 'artdeco-card')))
         pickle.dump(browser.get_cookies(), open('cookies.pkl', 'wb'))
@@ -57,22 +57,14 @@ def main():
             # cookies = pickle.load(open("cookies.pkl", "rb"))
             # for cookie in cookies:
             #     browser.add_cookie(cookie)
-            html = browser.find_element_by_tag_name('html')
-            html.send_keys(Keys.END)
-            time.sleep(2)
-            next = browser.find_element_by_xpath('//button[@aria-label="Avançar"]')
+            #html = browser.find_element_by_tag_name('html')
+            #html.send_keys(Keys.END)
+            #time.sleep(2)
+            #next = browser.find_element_by_xpath('//button[@aria-label="Avançar"]')
             source = browser.page_source
             
-            #browser.close()
             soup = BeautifulSoup(source, 'html.parser')
-            # for asd in soup.find_all('div', class_ = ['artdeco-pagination', 'artdeco-pagination--has-controls', 'ember-view', 'pv5', 'ph2']):
-            #     for abzu in asd.find_all('button', class_ = ['artdeco-pagination__button', 'artdeco-pagination__button--next', 'artdeco-button', 'artdeco-button--muted', 'artdeco-button--icon-right', 'artdeco-button--1', 'artdeco-button--tertiary', 'ember-view']):
-            #         for aaaaa in abzu.find_all('span', class_ = 'artdeco-button__text'):
-            #             print(repr(tag_cleanup(aaaaa)))
-            # sys.exit()
             for company in soup.find_all('a', class_ = 'app-aware-link'):
-                # if (company.find(class_='entity-result__simple-insight-wrapping-link')): 
-                #      continue
                 link = company['href']
                 if link.startswith('https://www.linkedin.com/company/'):
                     name = tag_cleanup(company)
@@ -84,12 +76,12 @@ def main():
                     
         for d in all:
             link = d['LinkedIn']
-            cookies = pickle.load(open("cookies.pkl", "rb"))
+            browser.get(url)
+            cookies = pickle.load(open('cookies.pkl', 'rb'))
             for cookie in cookies:
                 browser.add_cookie(cookie)
-            browser.get(url)
             page = browser.page_source
-            soup = BeautifulSoup(page, 'lxml')
+            soup = BeautifulSoup(page, 'html.parser')
             
             for row in soup.find_all('dt', class_ = ['mb1', 'text-heading-small']):
                 alo = tag_cleanup(row)
