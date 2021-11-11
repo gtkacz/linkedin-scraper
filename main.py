@@ -26,7 +26,7 @@ def main():
     
     OPTIONS = webdriver.ChromeOptions()
     #OPTIONS.add_argument('--headless')
-    OPTIONS.add_argument('--user-data-dir=chrome-data')
+    #OPTIONS.add_argument('--user-data-dir=chrome-data')
     
     try:
         browser = webdriver.Chrome(PATH, options=OPTIONS)
@@ -48,7 +48,9 @@ def main():
         password.send_keys(login_info['password'])
         browser.find_element_by_xpath('/html/body/div/main/div[2]/div[1]/form/div[3]/button').click()
         WebDriverWait(browser, 10).until(expected_conditions.presence_of_element_located((By.CLASS_NAME, 'artdeco-card')))
-        pickle.dump(browser.get_cookies(), open('cookies.pkl', 'wb'))
+        executor_url = browser.command_executor._url
+        session_id = browser.session_id
+        #pickle.dump(browser.get_cookies(), open('cookies.pkl', 'wb'))
         
         all = []
         
@@ -74,20 +76,19 @@ def main():
             #pickle.dump(browser.get_cookies(), open('cookies.pkl', 'wb'))
             #next.click()
                     
+        browser.quit()
+        
         for d in all:
-            link = d['LinkedIn']
-            browser.get(url)
-            WebDriverWait(browser, 10).until(expected_conditions.presence_of_element_located((By.CLASS_NAME, 'card-layout')))
-            username = browser.find_element_by_id('username')
-            password = browser.find_element_by_id('password')
-            username.send_keys(login_info['username'])
-            password.send_keys(login_info['password'])
-            browser.find_element_by_xpath('/html/body/div/main/div[2]/div[1]/form/div[3]/button').click()
-            # cookies = pickle.load(open('cookies.pkl', 'rb'))
-            # for cookie in cookies:
-            #     browser.add_cookie(cookie)
-            page = browser.page_source
+            link = d['LinkedIn'] + 'about'
+            browser2 = webdriver.Remote(options=OPTIONS, command_executor=executor_url, desired_capabilities={})
+            browser2.session_id = session_id
+            print(link)
+            browser2.get(link)
+            WebDriverWait(browser2, 10).until(expected_conditions.presence_of_element_located((By.CLASS_NAME, 'card-layout')))
+            browser2.find_element_by_xpath('/html/body/div/main/div[2]/div[1]/form/div[3]/button').click()
+            page = browser2.page_source
             soup = BeautifulSoup(page, 'html.parser')
+            print(page, soup)
             
             for row in soup.find_all('dt', class_ = ['mb1', 'text-heading-small']):
                 alo = tag_cleanup(row)
