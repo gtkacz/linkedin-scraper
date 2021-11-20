@@ -3,7 +3,7 @@ from tqdm import tqdm
 from bs4 import BeautifulSoup
 from pathlib import Path
 from selenium import webdriver
-from selenium.common.exceptions import WebDriverException, TimeoutException
+from selenium.common.exceptions import WebDriverException, TimeoutException, NoSuchElementException
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions
@@ -26,7 +26,6 @@ def main():
     
     OPTIONS = webdriver.ChromeOptions()
     #OPTIONS.add_argument('--headless')
-    #OPTIONS.add_argument('--user-data-dir=chrome-data')
     
     try:
         browser = webdriver.Chrome(PATH, options=OPTIONS)
@@ -48,16 +47,13 @@ def main():
         password.send_keys(login_info['password'])
         browser.find_element_by_xpath('/html/body/div/main/div[2]/div[1]/form/div[3]/button').click()
         WebDriverWait(browser, 10).until(expected_conditions.presence_of_element_located((By.CLASS_NAME, 'artdeco-card')))
-        executor_url = browser.command_executor._url
-        session_id = browser.session_id
-        #pickle.dump(browser.get_cookies(), open('cookies.pkl', 'wb'))
         
         data = []
         
         for i in tqdm(range(1, 101)):
             html = browser.find_element_by_tag_name('html')
             html.send_keys(Keys.END)
-            time.sleep(2)
+            time.sleep(1)
             next = browser.find_element_by_xpath('//button[@aria-label="Avançar"]')
             source = browser.page_source
             
@@ -70,12 +66,16 @@ def main():
                         row = {'Nome': name, 'LinkedIn': link}
                         data.append(row)
             next.click()
-            time.sleep(2)
+            time.sleep(1)
                     
         browser.quit()
         
-        with open('data.json', 'w') as fp:
-            json.dump(data, fp)
+        print(data)
+        
+        final_data = dict(pair for d in data for pair in d.items())
+        
+        with open('data.json', 'w', encoding='utf-8') as json_file:
+            json.dump(final_data, json_file, ensure_ascii=False)
         
         # for d in all:
         #     link = d['LinkedIn'] + 'about'
@@ -94,7 +94,7 @@ def main():
         #         print(row)
     
     
-    except TimeoutException:
+    except (TimeoutException, NoSuchElementException):
         try:
             browser.quit()
         finally:
