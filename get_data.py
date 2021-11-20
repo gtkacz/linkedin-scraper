@@ -75,12 +75,9 @@ def main():
                     else:
                         infos['Tamanho da empresa'] = b.split()[0]
                         found = False
-                    
-        for i, j in infos.items():
-            print(i, j, '\n')
             
-        # df = pd.DataFrame(infos, index=[0])
-        # print(df)
+        df = pd.DataFrame(infos, index=[0])
+        print(df)
         
     except TimeoutException:
         try:
