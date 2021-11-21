@@ -1,9 +1,10 @@
 import re, sys, html, requests, os, mechanize, pandas as pd, requests, time, pickle, json
+from selenium.webdriver.remote.webdriver import WebDriver
 from tqdm import tqdm
 from bs4 import BeautifulSoup
 from pathlib import Path
 from selenium import webdriver
-from selenium.common.exceptions import WebDriverException, TimeoutException
+from selenium.common.exceptions import WebDriverException, TimeoutException, NoSuchElementException
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions
@@ -19,6 +20,13 @@ def tag_cleanup(html):
     string = string.strip()
     return string
 
+def element_exists(xpath: str, driver: WebDriver):
+    try:
+        driver.find_element_by_xpath(xpath)
+    except NoSuchElementException:
+        return False
+    return True
+
 def main():
     #url = r'https://www.linkedin.com/company/buserbrasil/about/'
     CUR_DIR = Path(__file__).parent
@@ -31,6 +39,8 @@ def main():
     
     with open('data.json', 'r', encoding='utf-8-sig') as read_file:
         infos = json.load(read_file)
+        
+    #infos = infos[:10]
     
     try:
         browser = webdriver.Chrome(PATH, options=OPTIONS)
@@ -61,6 +71,13 @@ def main():
             page = browser.page_source
             soup = BeautifulSoup(page, 'html.parser')
             
+            if element_exists('//span[@aria-label="Visualizar informações de investimento no Crunchbase"]', browser):
+                for tabela in soup.find_all('div', class_ = ['display-flex', 'ph4', 'pt1']):
+                    for info in tabela.find_all('span', class_ = ['t-24', 't-black--light', 't-light']):
+                        a = tag_cleanup(info)
+                        if a.startswith('US$'):
+                            row['Financiamento via Crunchbase'] = a
+            
             for tabela in soup.find_all('section', class_ = ['artdeco-card', 'p5', 'mb4']):
                 found = False
                 for about in tabela.find_all('p', class_ = ['break-words', 'white-space-pre-wrap', 'mb5', 'text-body-small', 't-black--light']):
@@ -75,21 +92,27 @@ def main():
                         if b.endswith('funcionários'):
                             found = True
                             
+                    elif a == 'Número de telefone':
+                        continue
+                            
                     else:
                         if not found:
                             if not a == 'None':
                                 row[a] = b
                             else:
-                                row['Fundada em'] = b
+                                if b.isdecimal():
+                                    row['Fundada em'] = b
                         else:
-                            row['Tamanho da empresa'] = b.split()[0]
+                            b = b.split()[0]
+                            if b.isdecimal():
+                                row['Tamanho da empresa'] = b
                             found = False
                             
             df = df.append(row, ignore_index=True)
             
-        df.to_excel('resultados.xlsx')
+        df.to_excel('resultados.xlsx', index=False)
         
-    except TimeoutException:
+    except (TimeoutException, NoSuchElementException):
         try:
             browser.quit()
         finally:
