@@ -13,9 +13,9 @@ def tag_cleanup(html):
     html = str(html)
     cleanr = re.compile('<.*?>')
     string = (re.sub(cleanr, '', html))
-    string = string.replace('\n', '')
-    string = string.replace('\t', '')
-    string = string.replace(' ', '')
+    #string = string.replace('\n', '')
+    #string = string.replace('\t', '')
+    string = string.strip()
     return string
 
 def main():
